@@ -5,6 +5,12 @@ DEBUG = True
 GET_NEW_DATA = False
 PRINT_LOG = False
 
+import requests
+import json
+import time
+import os
+from student import *
+
 def get_info(API42, URL, token):
     # if DEBUG: print (API42.strip() + URL.strip() +'?%s' % "&".join(token))
     page = 0
@@ -88,11 +94,12 @@ def print_log(USER, result):
         print 'all: ' + str(zero + corrections)
 
 class Api42:
-    def __init__(self, id42, secret42, api42='https://api.intra.42.fr', debug=False, logs=True):
+    def __init__(self, id42, secret42, api42='https://api.intra.42.fr', debug=False, logs=True, dataFolder='data'):
         self.id = str(id42).strip()
         self.secret = str(secret42).strip()
         self.debug = debug
         self.api42 = str(api42).strip()
+        self.dataFolder = dataFolder.strip()
         self.__debugCounter = 1
         self.__getToken()
         self.__lastStatusCode = -1
@@ -102,6 +109,17 @@ class Api42:
         if self.debug:
             print str('api [{}] >> ' +  text).format(self.__debugCounter)
         self.__debugCounter += 1
+
+    def __folderExist(self):
+        if os.path.exists(self.dataFolder):
+            return
+        os.mkdir(self.dataFolder)
+
+    def __writeToFile(self, name, data):
+        self.__debug('writing to file: ' + self.dataFolder + '/' + name)
+        file = open(self.dataFolder + '/' + name, 'w')
+        file.write(data)
+        file.close
 
     def __connected(self, statusCode):
         self.__lastStatusCode = statusCode
@@ -148,7 +166,7 @@ class Api42:
         user = Student(str(login).strip())
         url = '/v2/users/' + str(login).strip()
         user.userData = json.loads(self.__makeRequest(url))
-        write_to_file(login + '_data', json.dumps(user.userData, indent=4, sort_keys=True))
+        self.__writeToFile(login + '_data', json.dumps(user.userData, indent=4, sort_keys=True))
         if len(user.userData) == 0:
             return None
         user.userId = user.userData['id']
