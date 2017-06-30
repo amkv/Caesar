@@ -11,8 +11,11 @@ def main():
     id42 = 'c4b496ced4be232b6ec55a1738cb188ca8ec754251c142919e16abfaed18ff94'
     secret42 = '31a701451b2cbc9c1c896bf5cb3d954e7c679cef1d66e79283771d64bd2754fe'
     api = Api42(id42, secret42, debug=True)
-    user = api.getUser('akalmyko')
-    user.printUserInfo()
+    # user = api.getUser('akalmyko')
+    # user.printUserInfo()
+    users = api.getUsers()
+    for each in users:
+        api.getUser(each)
 
     # token = getToken(API42)
     # result = as_corrector(API42, USER, token)

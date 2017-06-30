@@ -1,3 +1,4 @@
 *.pyc
 data
 logs
+users_list

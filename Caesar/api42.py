@@ -11,26 +11,26 @@ import time
 import os
 from student import *
 
-def get_info(API42, URL, token):
-    # if DEBUG: print (API42.strip() + URL.strip() +'?%s' % "&".join(token))
-    page = 0
-    ret = '['
-    while True:
-        # if DEBUG: print "page: " + str(page)
-        try:
-            timestart = time.time()
-            res = requests.get(API42.strip() + URL.strip() + '?%s' % "&".join(token) + "&page[number]=" + str(page) + "&page[size]=100")
-            timeend = time.time()
-            # if DEBUG: print('response' + '%6.2f' % ((timeend - timestart)) + ' seconds')
-        except:
-            # if DEBUG: print "bad request"
-            pass
-        res.encoding = 'UTF-8'
-        if res.text == '[]':
-            break
-        ret = ret + res.text[1:-1] + ','
-        page = page + 1
-    return ret[:-1] + ']'
+# def get_info(API42, URL, token):
+#     # if DEBUG: print (API42.strip() + URL.strip() +'?%s' % "&".join(token))
+#     page = 0
+#     ret = '['
+#     while True:
+#         # if DEBUG: print "page: " + str(page)
+#         try:
+#             timestart = time.time()
+#             res = requests.get(API42.strip() + URL.strip() + '?%s' % "&".join(token) + "&page[number]=" + str(page) + "&page[size]=100")
+#             timeend = time.time()
+#             # if DEBUG: print('response' + '%6.2f' % ((timeend - timestart)) + ' seconds')
+#         except:
+#             # if DEBUG: print "bad request"
+#             pass
+#         res.encoding = 'UTF-8'
+#         if res.text == '[]':
+#             break
+#         ret = ret + res.text[1:-1] + ','
+#         page = page + 1
+#     return ret[:-1] + ']'
 
 def open_file(name):
     try:
@@ -95,42 +95,41 @@ def print_log(USER, result):
 
 class Api42:
     """Class providing wrapper for api calls to the 42 school API"""
-    def __init__(self, id42, secret42, api42='https://api.intra.42.fr', debug=False, logs=True, logsFolder='logs', dataFolder='data'):
+    def __init__(self, id42, secret42, api42='https://api.intra.42.fr', debug=False, logs=True, dataFolder='data'):
         self.id = str(id42).strip()
         self.secret = str(secret42).strip()
         self.debug = debug
         self.api42 = str(api42).strip()
         self.dataFolder = dataFolder.strip()
-        self.logsFolder = logsFolder.strip()
         self.__debugCounter = 1
         self.__lastStatusCode = -1
         self.__logs = logs
+        self.__logsFile = 'logs'
         self.__folderExist(self.dataFolder)
         if self.__logs:
-            self.__folderExist(self.logsFolder)
-            self.__writeToFile(self.logsFolder + '/log.txt', '---------------------\n', typeOfRecord='a')
+            self.__writeToFile(self.__logsFile, '---------------------\n', typeOfRecord='a')
         self.__getToken()
 
     def __debug(self, text):
         """Print debug info, if gebug is enabled"""
         if self.__logs:
-            self.__writeToFile(self.logsFolder + '/log.txt', ('api [{}] >> ' +  text + '\n').format(self.__debugCounter), typeOfRecord='a')
+            self.__writeToFile(self.__logsFile, ('api [{}] >> ' +  text + '\n').format(self.__debugCounter), typeOfRecord='a')
         if self.debug:
             print str('api [{}] >> ' +  text).format(self.__debugCounter)
         self.__debugCounter += 1
 
-    def __folderExist(self, name):
+    def __folderExist(self, folderName):
         """Check folder exist or not"""
-        if os.path.exists(name):
+        if os.path.exists(folderName):
             return
-        # self.__debug('creating folder: ' + name)
-        os.mkdir(name)
+        self.__debug('creating folder: ' + folderName)
+        os.mkdir(folderName)
 
-    def __writeToFile(self, name, data, typeOfRecord='w'):
+    def __writeToFile(self, fileName, data, typeOfRecord='w'):
         """Write the raw user data to the specific folder"""
         if typeOfRecord == 'w':
-            self.__debug('writing to file: ' + name)
-        file = open(name, typeOfRecord)
+            self.__debug('writing to file: ' + fileName)
+        file = open(fileName, typeOfRecord)
         file.write(data)
         file.close
 
@@ -148,7 +147,7 @@ class Api42:
         """Private function, get token from the server"""
         url = '/oauth/token'
         args = {'grant_type=client_credentials', 'client_id=' + self.id, 'client_secret=' + self.secret}
-        self.__debug('request to ' + self.api42 + url)
+        self.__debug('get token request to ' + self.api42 + url)
         timestart = time.time()
         try:
             ret = requests.post(self.api42 + url + "?%s" % "&".join(args))
@@ -164,14 +163,16 @@ class Api42:
         self.token = token
         return self.token
 
-    def __makeRequest(self, url, page=None):
+    def __makeRequest(self, url, pageRequest=None):
         """Make one request to the server"""
-        self.__debug('request to ' + self.api42 + url + '?%s' % "&".join(self.token))
         try:
-            timestart = time.time()
-            if page is not None:
-                res = requests.get(self.api42 + url + '?%s' % "&".join(self.token) + "&page[number]=" + str(page) + "&page[size]=100")
+            if pageRequest is not None:
+                self.__debug(self.api42 + url + '?%s' % "&".join(self.token) + "&page[size]=100" + "&page[number]=" + str(pageRequest))
+                timestart = time.time()
+                res = requests.get(self.api42 + url + '?%s' % "&".join(self.token) + "&page[size]=100" + "&page[number]=" + str(pageRequest))
             else:
+                self.__debug('request to ' + self.api42 + url + '?%s' % "&".join(self.token))
+                timestart = time.time()
                 res = requests.get(self.api42 + url + '?%s' % "&".join(self.token))
             timeend = time.time()
             self.__debug('response' + '%6.2f' % ((timeend - timestart)) + ' seconds')
@@ -180,6 +181,28 @@ class Api42:
             return None
         res.encoding = 'UTF-8'
         return res.text.encode('utf8')
+
+    def __makeRequests(self, url):
+        """Make multiple requests to the server"""
+        pageNumber = 0
+        result = '['
+        text = '[]'
+        timestart = time.time()
+        while True:
+            self.__debug('page number (multi request): ' + str(pageNumber))
+            try:
+                text = self.__makeRequest(url, pageNumber)
+            except:
+                self.__debug('something wrong')
+                return None
+            if text == '[]':
+                break
+            result = result + text[1:-1] + ','
+            pageNumber = pageNumber + 1
+        timeend = time.time()
+        self.__debug('total time: ' + str(timeend - timestart))
+        result = result[:-1] + ']'
+        return result
 
     def getUser(self, login='akalmyko'):
         """Get info about specific user"""
@@ -201,11 +224,22 @@ class Api42:
         user.last_name = user.userData['last_name']
         user.phone = user.userData['phone']
         user.email = user.userData['email']
-        user.level = user.userData['cursus_users'][0]['level']
+        try:
+            user.level = user.userData['cursus_users'][0]['level']
+        except:
+            pass
         # user.achievements = user.userData['achievements']
         # user.campus = user.userData['campus']
         return user
 
-    def getUsers(self):
-        """Get the list of the users"""
-        pass
+    def getUsers(self, campus=7):
+        """Get the list of the users in campus"""
+        self.__debug('getUsers')
+        url = '/v2/campus/' + str(campus).strip() + '/users'
+        text = self.__makeRequests(url)
+        result = json.loads(text)
+        listOfUsers = []
+        for each in result:
+            listOfUsers.append(each['login'])
+        # self.__writeToFile('users_list', json.dumps(result, indent=4, sort_keys=True))
+        return listOfUsers
