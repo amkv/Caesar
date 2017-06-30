@@ -1,11 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import requests
-import json
+
 import sys
 import os
-import time
+
 from Caesar import *
 
 def main():
@@ -13,7 +12,7 @@ def main():
     secret42 = '31a701451b2cbc9c1c896bf5cb3d954e7c679cef1d66e79283771d64bd2754fe'
     api = Api42(id42, secret42, debug=True)
     user = api.getUser('akalmyko')
-    user.printInfo()
+    user.printUserInfo()
 
     # token = getToken(API42)
     # result = as_corrector(API42, USER, token)

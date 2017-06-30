@@ -35,7 +35,7 @@ class Student:
         self.titles = None
         self.userData = None
 
-    def printInfo(self):
+    def printUserInfo(self):
         print self.userId
         print self.login
         print self.displayname

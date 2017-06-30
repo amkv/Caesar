@@ -48,10 +48,10 @@ def check(text):
     else:
         return "BAD TEXT"
 
-def write_to_file(name, data):
-    file = open(name, 'w')
-    file.write(data)
-    file.close
+# def write_to_file(name, data):
+#     file = open(name, 'w')
+#     file.write(data)
+#     file.close
 
 def as_corrector(API42, USER, token):
     URL = "/v2/users/" + USER + "/scale_teams/as_corrector"
@@ -66,11 +66,11 @@ def as_corrector(API42, USER, token):
         write_to_file('json_data_' + USER, json.dumps(result, indent=4))
     return result
 
-def campus_users():
-    API42 = 'https://api.intra.42.fr'
-    URL = '/v2/campus_users'
-
-    pass
+# def campus_users():
+#     API42 = 'https://api.intra.42.fr'
+#     URL = '/v2/campus_users'
+#
+#     pass
 
 def print_log(USER, result):
     if PRINT_LOG:
@@ -94,34 +94,48 @@ def print_log(USER, result):
         print 'all: ' + str(zero + corrections)
 
 class Api42:
-    def __init__(self, id42, secret42, api42='https://api.intra.42.fr', debug=False, logs=True, dataFolder='data'):
+    """Class providing wrapper for api calls to the 42 school API"""
+    def __init__(self, id42, secret42, api42='https://api.intra.42.fr', debug=False, logs=True, logsFolder='logs', dataFolder='data'):
         self.id = str(id42).strip()
         self.secret = str(secret42).strip()
         self.debug = debug
         self.api42 = str(api42).strip()
         self.dataFolder = dataFolder.strip()
+        self.logsFolder = logsFolder.strip()
         self.__debugCounter = 1
-        self.__getToken()
         self.__lastStatusCode = -1
         self.__logs = logs
+        self.__folderExist(self.dataFolder)
+        if self.__logs:
+            self.__folderExist(self.logsFolder)
+            self.__writeToFile(self.logsFolder + '/log.txt', '---------------------\n', typeOfRecord='a')
+        self.__getToken()
 
     def __debug(self, text):
+        """Print debug info, if gebug is enabled"""
+        if self.__logs:
+            self.__writeToFile(self.logsFolder + '/log.txt', ('api [{}] >> ' +  text + '\n').format(self.__debugCounter), typeOfRecord='a')
         if self.debug:
             print str('api [{}] >> ' +  text).format(self.__debugCounter)
         self.__debugCounter += 1
 
-    def __folderExist(self):
-        if os.path.exists(self.dataFolder):
+    def __folderExist(self, name):
+        """Check folder exist or not"""
+        if os.path.exists(name):
             return
-        os.mkdir(self.dataFolder)
+        # self.__debug('creating folder: ' + name)
+        os.mkdir(name)
 
-    def __writeToFile(self, name, data):
-        self.__debug('writing to file: ' + self.dataFolder + '/' + name)
-        file = open(self.dataFolder + '/' + name, 'w')
+    def __writeToFile(self, name, data, typeOfRecord='w'):
+        """Write the raw user data to the specific folder"""
+        if typeOfRecord == 'w':
+            self.__debug('writing to file: ' + name)
+        file = open(name, typeOfRecord)
         file.write(data)
         file.close
 
     def __connected(self, statusCode):
+        """Check status of connection"""
         self.__lastStatusCode = statusCode
         if int(statusCode) == 200:
             self.__debug('connected: ' + str(statusCode))
@@ -131,6 +145,7 @@ class Api42:
             return False
 
     def __getToken(self):
+        """Private function, get token from the server"""
         url = '/oauth/token'
         args = {'grant_type=client_credentials', 'client_id=' + self.id, 'client_secret=' + self.secret}
         self.__debug('request to ' + self.api42 + url)
@@ -149,11 +164,15 @@ class Api42:
         self.token = token
         return self.token
 
-    def __makeRequest(self, url):
+    def __makeRequest(self, url, page=None):
+        """Make one request to the server"""
+        self.__debug('request to ' + self.api42 + url + '?%s' % "&".join(self.token))
         try:
             timestart = time.time()
-            self.__debug('request to ' + self.api42 + url + '?%s' % "&".join(self.token))
-            res = requests.get(self.api42 + url + '?%s' % "&".join(self.token))
+            if page is not None:
+                res = requests.get(self.api42 + url + '?%s' % "&".join(self.token) + "&page[number]=" + str(page) + "&page[size]=100")
+            else:
+                res = requests.get(self.api42 + url + '?%s' % "&".join(self.token))
             timeend = time.time()
             self.__debug('response' + '%6.2f' % ((timeend - timestart)) + ' seconds')
         except:
@@ -163,12 +182,16 @@ class Api42:
         return res.text.encode('utf8')
 
     def getUser(self, login='akalmyko'):
-        user = Student(str(login).strip())
-        url = '/v2/users/' + str(login).strip()
+        """Get info about specific user"""
+        self.__debug('creating user: ' + login)
+        url = '/v2/users/' + login
+        login = str(login).strip()
+        user = Student(login)
         user.userData = json.loads(self.__makeRequest(url))
-        self.__writeToFile(login + '_data', json.dumps(user.userData, indent=4, sort_keys=True))
         if len(user.userData) == 0:
+            self.__debug('bad login: ' + login)
             return None
+        self.__writeToFile(self.dataFolder + '/' + login + '_data', json.dumps(user.userData, indent=4, sort_keys=True))
         user.userId = user.userData['id']
         user.campus = user.userData['campus']
         user.url = user.userData['url']
@@ -184,4 +207,5 @@ class Api42:
         return user
 
     def getUsers(self):
+        """Get the list of the users"""
         pass
