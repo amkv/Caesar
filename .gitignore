@@ -1,4 +1,5 @@
 *.pyc
-data
+data/
 logs
 users_list
+credentials.txt

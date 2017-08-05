@@ -11,26 +11,6 @@ import time
 import os
 from student import *
 
-# def get_info(API42, URL, token):
-#     # if DEBUG: print (API42.strip() + URL.strip() +'?%s' % "&".join(token))
-#     page = 0
-#     ret = '['
-#     while True:
-#         # if DEBUG: print "page: " + str(page)
-#         try:
-#             timestart = time.time()
-#             res = requests.get(API42.strip() + URL.strip() + '?%s' % "&".join(token) + "&page[number]=" + str(page) + "&page[size]=100")
-#             timeend = time.time()
-#             # if DEBUG: print('response' + '%6.2f' % ((timeend - timestart)) + ' seconds')
-#         except:
-#             # if DEBUG: print "bad request"
-#             pass
-#         res.encoding = 'UTF-8'
-#         if res.text == '[]':
-#             break
-#         ret = ret + res.text[1:-1] + ','
-#         page = page + 1
-#     return ret[:-1] + ']'
 
 def open_file(name):
     try:
@@ -42,16 +22,13 @@ def open_file(name):
     file.close()
     return text
 
+
 def check(text):
     if text is not None:
         return text.encode('utf-8').strip()
     else:
         return "BAD TEXT"
 
-# def write_to_file(name, data):
-#     file = open(name, 'w')
-#     file.write(data)
-#     file.close
 
 def as_corrector(API42, USER, token):
     URL = "/v2/users/" + USER + "/scale_teams/as_corrector"
@@ -66,11 +43,6 @@ def as_corrector(API42, USER, token):
         write_to_file('json_data_' + USER, json.dumps(result, indent=4))
     return result
 
-# def campus_users():
-#     API42 = 'https://api.intra.42.fr'
-#     URL = '/v2/campus_users'
-#
-#     pass
 
 def print_log(USER, result):
     if PRINT_LOG:
